@@ -16,7 +16,7 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Home">
-        <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Featured Resorts' }} />
+        <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Kuriftu Resorts', headerTitleAlign: "center" }} />
          <Stack.Screen name="ResortList" component={ResortListScreen} options={{ title: 'All Resorts' }} />
         <Stack.Screen 
           name="ResortDetail" 

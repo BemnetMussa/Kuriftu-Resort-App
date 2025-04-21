@@ -3,13 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 // Initialize Supabase client
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL") || "",
-  Deno.env.get("SUPABASE_ANON_KEY") ||
-    "",
+  Deno.env.get("SUPABASE_ANON_KEY") || "",
 );
 
 // Chapa configuration
-const CHAPA_SECRET_KEY = Deno.env.get("CHAPA_SECRET_KEY") ||
-  "";
+const CHAPA_SECRET_KEY = Deno.env.get("CHAPA_SECRET_KEY") || "";
 const CHAPA_API_URL = "https://api.chapa.co/v1/transaction/initialize";
 
 interface PaymentRequest {

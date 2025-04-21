@@ -1,32 +1,131 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-// Setup type definitions for built-in Supabase Runtime APIs
-import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+// Initialize Supabase client
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL") || "https://eorhquvegduxpfwdjsgy.supabase.co",
+  Deno.env.get("SUPABASE_ANON_KEY") ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvcmhxdXZlZ2R1eHBmd2Rqc2d5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ2NjY4MjUsImV4cCI6MjA2MDI0MjgyNX0.nzOSFZISe84H3gGLw5qmzHrHr3tGgYHjsygWryC4IIQ",
+);
 
-console.log("Hello from Functions!")
+// Chapa configuration
+const CHAPA_SECRET_KEY = Deno.env.get("CHAPA_SECRET_KEY") ||
+  "CHASECK_TEST-lhrInGC9vARGQ6kf0FY7j8fe2RU4Mos9";
+const CHAPA_API_URL = "https://api.chapa.co/v1/transaction/initialize";
 
-Deno.serve(async (req) => {
-  const { name } = await req.json()
-  const data = {
-    message: `Hello ${name}!`,
+interface PaymentRequest {
+  amount: number;
+  currency: string;
+  user_id: string;
+  type: "event" | "service";
+  item_id: string;
+}
+
+Deno.serve(async (req: Request) => {
+  try {
+    // Parse and validate request body
+    const body: PaymentRequest = await req.json();
+    const { amount, currency, user_id, type, item_id } = body;
+
+    if (!amount || !currency || !user_id || !type || !item_id) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    if (!["event", "service"].includes(type)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid type: must be 'event' or 'service'" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    // Generate unique transaction reference
+    const chapa_tx_ref = `tx-${crypto.randomUUID()}`;
+
+    // Log pending payment in Supabase
+    // const { error: paymentError } = await supabase.from("payments").insert({
+    //   user_id,
+    //   amount,
+    //   currency,
+    //   status: "pending",
+    //   chapa_tx_ref,
+    //   ...(type === "event" ? { event_id: item_id } : { service_id: item_id }),
+    // });
+
+    // if (paymentError) {
+    //   return new Response(
+    //     JSON.stringify({
+    //       error: "Failed to log payment",
+    //       paymentError: paymentError,
+    //     }),
+    //     { status: 400, headers: { "Content-Type": "application/json" } },
+    //   );
+    // }
+
+    // Fetch user profile from Supabase
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("email, first_name, last_name")
+      .eq("id", user_id)
+      .single();
+
+    if (!profile) {
+      console.error("Profile error:", profileError);
+      return new Response(
+        JSON.stringify({ error: "User profile not found" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    // Prepare Chapa payment body
+    const chapaBody = {
+      amount,
+      currency,
+      email: profile.email,
+      first_name: profile.first_name,
+      last_name: profile.last_name,
+      tx_ref: chapa_tx_ref,
+      return_url: `https://google.com/payment-complete?tx_ref=${chapa_tx_ref}`,
+      "customization[title]": "Payment for my favourite merchant",
+      "customization[description]": "I love online payments",
+    };
+
+    // Initiate Chapa payment
+    const chapaRes = await fetch(CHAPA_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${CHAPA_SECRET_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(chapaBody),
+    });
+
+    const chapaData = await chapaRes.json();
+
+    if (chapaData.status !== "success" || !chapaData.data?.checkout_url) {
+      console.error("Chapa error:", chapaData);
+      return new Response(
+        JSON.stringify({ error: "Failed to initiate payment", chapaData }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    // Return payment URL
+    return new Response(
+      JSON.stringify({
+        chapa_tx_ref,
+        redirectUrl: chapaData.data.checkout_url,
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  } catch (error) {
+    console.error("Error occurred:", error);
+    return new Response(
+      JSON.stringify({
+        error: (error as Error).message || "Unknown error occurred",
+      }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
   }
-
-  return new Response(
-    JSON.stringify(data),
-    { headers: { "Content-Type": "application/json" } },
-  )
-})
-
-/* To invoke locally:
-
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
-
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/hello-world' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
-    --header 'Content-Type: application/json' \
-    --data '{"name":"Functions"}'
-
-*/
+});

@@ -1,22 +1,18 @@
-
-import { enableScreens } from 'react-native-screens';
+import { enableScreens } from "react-native-screens";
 
 // Call this function before rendering any navigation stack
 enableScreens();
 
-
-
-import React from 'react';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import AppNavigator from './src/navigation/AppNavigator';
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import AppNavigator from "./src/navigation/AppNavigator";
+import { AuthProvider } from "./src/utils/AuthProvider";
 
 export default function App() {
   return (
-
-    <SafeAreaProvider>
-      <AppNavigator />
-    </SafeAreaProvider>
-
+    <AuthProvider>
+      <SafeAreaProvider>
+        <AppNavigator />
+      </SafeAreaProvider>
+    </AuthProvider>
   );
 }
-

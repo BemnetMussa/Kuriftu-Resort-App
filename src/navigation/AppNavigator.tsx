@@ -1,9 +1,6 @@
 // src/navigation/AppNavigator.js
-import { NavigationContainer, useNavigation } from "@react-navigation/native";
-import {
-  createNativeStackNavigator,
-  NativeStackNavigationProp,
-} from "@react-navigation/native-stack";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/RootStackParamList";
 import HomeScreen from "../screens/HomeScreen";
 import ResortListScreen from "../screens/ResortListScreen";
@@ -14,6 +11,8 @@ import { useAuth } from "../utils/AuthProvider";
 import LoginScreen from "../screens/Auth/LoginScreen";
 import SignUpScreen from "../screens/Auth/SignUpScreen";
 import { Image, TouchableOpacity } from "react-native";
+import ProfileScreen from "../screens/ProfileScreen";
+import { Ionicons } from "@expo/vector-icons";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -43,21 +42,17 @@ export default function AppNavigator() {
               component={HomeScreen}
               options={({ navigation }) => ({
                 title: "Featured Resorts",
-                // headerRight: () => (
-                //   <TouchableOpacity
-                //     onPress={() => navigation.navigate("Profile")}
-                //   >
-                //     <Image
-                //       source={require("../assets/favicon.png")} // or use a URI
-                //       style={{
-                //         width: 30,
-                //         height: 30,
-                //         borderRadius: 15,
-                //         marginRight: 10,
-                //       }}
-                //     />
-                //   </TouchableOpacity>
-                // ),
+                headerRight: () => (
+                  <TouchableOpacity
+                    onPress={() => {
+                      console.log("Button pressed");
+                      navigation.navigate("Profile");
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="person" size={20} color="black" />
+                  </TouchableOpacity>
+                ),
               })}
             />
             <Stack.Screen
@@ -82,11 +77,11 @@ export default function AppNavigator() {
               component={EventsScreen}
               options={{ title: "Events" }}
             />
-            {/* <Stack.Screen
+            <Stack.Screen
               name="Profile"
               component={ProfileScreen}
               options={{ title: "Profile" }}
-            /> */}
+            />
           </>
         )}
       </Stack.Navigator>

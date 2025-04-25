@@ -12,6 +12,11 @@ import { RootStackParamList } from "../../../types/RootStackParamList";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAuth } from "../../utils/AuthProvider";
 
+type LoginScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "Login"
+>;
+
 export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,8 +36,7 @@ export default function SignInScreen() {
     }
   }
 
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<LoginScreenNavigationProp>();
 
   return (
     <View className="flex-1 justify-center px-6 bg-white gap-5">

@@ -57,6 +57,13 @@ export default function ResortDetailScreen({
   
   const screenWidth = Dimensions.get('window').width;
 
+<<<<<<< HEAD
+=======
+  const screenWidth = Dimensions.get("window").width;
+
+  // const GEBETA_API_KEY =
+  //   (process.env.EXPO_GEBETA_API_KEY as string)
+>>>>>>> 613ac14 (Add: integrate updated map view and update environment config)
 
   useEffect(() => {
     fetchResortDetails();
@@ -85,6 +92,69 @@ export default function ResortDetailScreen({
     }
   }
 
+<<<<<<< HEAD
+=======
+  // turn location on
+  useEffect(() => {
+    const getLocationAndFetchRoute = async () => {
+      // 1. Request location permissions
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Location Permission",
+          "Location access is needed for routing. Please enable it in settings."
+        );
+        return;
+      }
+
+      // 2. Get user's current location
+      const userLocation = await Location.getCurrentPositionAsync({});
+      const origin: Coordinate = {
+        latitude: userLocation.coords.latitude,
+        longitude: userLocation.coords.longitude,
+      };
+      setLocation(origin);
+
+      // 3. Set the destination manually (provided by the app)
+      const destination: Coordinate = {
+        latitude: 9.03045,
+        longitude: 38.7653,
+      };
+
+      // 4. Fetch route from Gebeta API
+      fetchGebetaRoute({ origin, destination, apiKey: GEBETA_API_KEY });
+    };
+
+    getLocationAndFetchRoute();
+  }, []);
+
+  // fetch the map form gebeta
+  // const fetchGebetaRoute = async ({
+  //   origin,
+  //   destination,
+  //   apiKey,
+  // }: {
+  //   origin: Coordinate;
+  //   destination: Coordinate;
+  //   apiKey: string;
+  // }) => {
+  //   try {
+  //     const response = await fetch(
+  //       `https://mapapi.gebeta.app/api/route/direction/?origin={${origin.latitude},${origin.longitude}}&destination={${destination.latitude},${destination.longitude}}&apiKey=${apiKey}`
+  //     );
+  //     const data = await response.json();
+  //     console.log("Gebeta API Response:", data);
+  //   } catch (error) {
+  //     console.error("Error fetching route from Gebeta:", error);
+  //   }
+  // };
+
+  // fetch map form open streat map
+
+  const fetchMap = async () => {};
+
+>>>>>>> 613ac14 (Add: integrate updated map view and update environment config)
   // handle payment
   const handlePayment = async () => {
     try {

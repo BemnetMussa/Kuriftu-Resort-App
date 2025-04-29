@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -9,13 +8,15 @@ import {
   TouchableOpacity,
   Dimensions,
   Linking,
+  Alert,
+  Platform,
 } from "react-native";
 import { supabase } from "../utils/supabase";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { RootStackParamList } from "../../types/RootStackParamList";
 import { Ionicons } from "@expo/vector-icons";
-
+import * as Location from "expo-location";
 
 type Resort = {
   id: string;
@@ -30,9 +31,10 @@ type Resort = {
   about: string;
 };
 
-
-type ResortDetailScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ResortDetail'>;
-
+type ResortDetailScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "ResortDetail"
+>;
 
 type ResortDetailScreenRouteProp = RouteProp<
   RootStackParamList,
@@ -44,6 +46,11 @@ interface ResortDetailScreenProps {
   navigation: ResortDetailScreenNavigationProp;
 }
 
+interface Coordinate {
+  latitude: number;
+  longitude: number;
+}
+
 export default function ResortDetailScreen({
   route,
   navigation,
@@ -52,11 +59,17 @@ export default function ResortDetailScreen({
   const [resort, setResort] = useState<Resort | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [location, setLocation] = useState<Coordinate | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'about' | 'map' | 'services' | 'events'>('about');
-  
-  const screenWidth = Dimensions.get('window').width;
+  const [activeTab, setActiveTab] = useState<
+    "about" | "map" | "services" | "events"
+  >("about");
 
+  const screenWidth = Dimensions.get("window").width;
+
+  const GEBETA_API_KEY =
+    (process.env.EXPO_GEBETA_API_KEY as string) ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55bmFtZSI6IkFsZW1heWVodSIsImRlc2NyaXB0aW9uIjoiNmI0NTUyYjQtMDY0NC00YzM1LTlkZDAtOWU2YzRhYTJlZjc2IiwiaWQiOiJlZDRmNmVjYS03N2NlLTQ4ZDMtOTAyNS00NWU0NDZjNTQ0YjAiLCJ1c2VybmFtZSI6IkFsZW1heWVodWRhYmkifQ.ppiDrAL1egauwKTBbgmrprBUVsewRVRnVN_YBAe6mUM";
 
   useEffect(() => {
     fetchResortDetails();
@@ -66,13 +79,12 @@ export default function ResortDetailScreen({
     try {
       setLoading(true);
 
-    
       // Fetch resort details
       const { data: resortData, error: resortError } = await supabase
-        .from('Resorts Table')
-        .select('*')
-        .eq('id', resortId)
-        .single(); 
+        .from("Resorts Table")
+        .select("*")
+        .eq("id", resortId)
+        .single();
 
       if (resortError) throw resortError;
       setResort(resortData);
@@ -84,6 +96,62 @@ export default function ResortDetailScreen({
       setLoading(false);
     }
   }
+
+  // turn location on
+  useEffect(() => {
+    const getLocationAndFetchRoute = async () => {
+      // 1. Request location permissions
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Location Permission",
+          "Location access is needed for routing. Please enable it in settings."
+        );
+        return;
+      }
+
+      // 2. Get user's current location
+      const userLocation = await Location.getCurrentPositionAsync({});
+      const origin: Coordinate = {
+        latitude: userLocation.coords.latitude,
+        longitude: userLocation.coords.longitude,
+      };
+      setLocation(origin);
+
+      // 3. Set the destination manually (provided by the app)
+      const destination: Coordinate = {
+        latitude: 9.03045,
+        longitude: 38.7653,
+      };
+
+      // 4. Fetch route from Gebeta API
+      fetchGebetaRoute({ origin, destination, apiKey: GEBETA_API_KEY });
+    };
+
+    getLocationAndFetchRoute();
+  }, []);
+
+  // fetch the map form gebeta
+  const fetchGebetaRoute = async ({
+    origin,
+    destination,
+    apiKey,
+  }: {
+    origin: Coordinate;
+    destination: Coordinate;
+    apiKey: string;
+  }) => {
+    try {
+      const response = await fetch(
+        `https://mapapi.gebeta.app/api/route/direction/?origin={${origin.latitude},${origin.longitude}}&destination={${destination.latitude},${destination.longitude}}&apiKey=${apiKey}`
+      );
+      const data = await response.json();
+      console.log("Gebeta API Response:", data);
+    } catch (error) {
+      console.error("Error fetching route from Gebeta:", error);
+    }
+  };
 
   // handle payment
   const handlePayment = async () => {
@@ -131,41 +199,42 @@ export default function ResortDetailScreen({
   // Helper function to render amenities
   const renderAmenities = () => {
     if (!resort?.amenities) return null;
-    
 
     // Get only amenities that are true
     const availableAmenities = Object.entries(resort.amenities)
       .filter(([_, value]) => value === true)
       .map(([key]) => key);
 
-    
     if (availableAmenities.length === 0) return null;
-    
+
     // Map amenity keys to more user-friendly names and icons
-    const amenityIcons: {[key: string]: {name: string; icon: string}} = {
-      wifi: {name: "Wi-Fi", icon: "wifi"},
-      pool: {name: "Pool", icon: "water"},
-      gym: {name: "Gym", icon: "fitness"},
-      spa: {name: "Spa", icon: "sparkles"},
-      restaurant: {name: "Restaurant", icon: "restaurant"},
-      bar: {name: "Bar", icon: "wine"},
-      parking: {name: "Parking", icon: "car"},
-      ac: {name: "A/C", icon: "thermometer"}
+    const amenityIcons: { [key: string]: { name: string; icon: string } } = {
+      wifi: { name: "Wi-Fi", icon: "wifi" },
+      pool: { name: "Pool", icon: "water" },
+      gym: { name: "Gym", icon: "fitness" },
+      spa: { name: "Spa", icon: "sparkles" },
+      restaurant: { name: "Restaurant", icon: "restaurant" },
+      bar: { name: "Bar", icon: "wine" },
+      parking: { name: "Parking", icon: "car" },
+      ac: { name: "A/C", icon: "thermometer" },
     };
-    
+
     return (
       <View className="flex-row flex-wrap mt-4">
         {availableAmenities.map((amenity) => (
-          <View key={amenity} className="bg-gray-100 rounded-lg px-3 py-2 mr-2 mb-2 flex-row items-center">
-            <Ionicons 
-              name={amenityIcons[amenity]?.icon as any || "checkmark-circle"} 
-              size={16} 
-              color="#555" 
-              style={{marginRight: 6}} 
+          <View
+            key={amenity}
+            className="bg-gray-100 rounded-lg px-3 py-2 mr-2 mb-2 flex-row items-center"
+          >
+            <Ionicons
+              name={(amenityIcons[amenity]?.icon as any) || "checkmark-circle"}
+              size={16}
+              color="#555"
+              style={{ marginRight: 6 }}
             />
             <Text className="text-sm text-gray-700">
-              {amenityIcons[amenity]?.name || amenity.charAt(0).toUpperCase() + amenity.slice(1)}
-
+              {amenityIcons[amenity]?.name ||
+                amenity.charAt(0).toUpperCase() + amenity.slice(1)}
             </Text>
           </View>
         ))}
@@ -186,21 +255,31 @@ export default function ResortDetailScreen({
         );
       } else if (i === fullStars && hasHalfStar) {
         stars.push(
-
-          <Ionicons key={`star-half-${i}`} name="star-half" size={16} color="#FFD700" />
+          <Ionicons
+            key={`star-half-${i}`}
+            name="star-half"
+            size={16}
+            color="#FFD700"
+          />
         );
       } else {
         stars.push(
-          <Ionicons key={`star-outline-${i}`} name="star-outline" size={16} color="#FFD700" />
+          <Ionicons
+            key={`star-outline-${i}`}
+            name="star-outline"
+            size={16}
+            color="#FFD700"
+          />
         );
       }
     }
-    
+
     return (
       <View className="flex-row items-center">
         {stars}
-        <Text className="text-sm text-gray-600 ml-1">({rating.toFixed(1)})</Text>
-
+        <Text className="text-sm text-gray-600 ml-1">
+          ({rating.toFixed(1)})
+        </Text>
       </View>
     );
   };
@@ -221,7 +300,6 @@ export default function ResortDetailScreen({
         <Text className="text-red-500 text-lg text-center mt-2">{error}</Text>
 
         <TouchableOpacity
-
           className="mt-4 bg-blue-500 py-2 px-4 rounded-lg"
           onPress={fetchResortDetails}
         >
@@ -232,34 +310,41 @@ export default function ResortDetailScreen({
   }
 
   const renderAboutTab = () => (
-
     <ScrollView className="flex-1 px-4">
       <View className="mb-6 mt-4">
         <Text className="text-lg font-semibold text-gray-800 mb-2">About</Text>
-        <Text className="text-base text-gray-600 leading-6">{resort?.about || "no description for this resort"}</Text>
+        <Text className="text-base text-gray-600 leading-6">
+          {resort?.about || "no description for this resort"}
+        </Text>
       </View>
-      
+
       <View className="mb-6">
-        <Text className="text-lg font-semibold text-gray-800 mb-2">Amenities</Text>
+        <Text className="text-lg font-semibold text-gray-800 mb-2">
+          Amenities
+        </Text>
         {renderAmenities()}
       </View>
-      
+
       <View className="mb-6">
-        <Text className="text-lg font-semibold text-gray-800 mb-2">Location</Text>
+        <Text className="text-lg font-semibold text-gray-800 mb-2">
+          Location
+        </Text>
         <View className="flex-row items-center">
           <Ionicons name="location" size={16} color="#666" />
-          <Text className="text-base text-gray-600 ml-1">{resort?.location}</Text>
+          <Text className="text-base text-gray-600 ml-1">
+            {resort?.location}
+          </Text>
         </View>
+        {/* map */}
         <View className="bg-gray-200 h-40 rounded-lg mt-2 items-center justify-center">
           <Ionicons name="map" size={48} color="#aaa" />
-          <Text className="text-sm text-gray-500 mt-2">Map will be displayed here</Text>
-
+          <Text className="text-sm text-gray-500 mt-2">
+            Map will be displayed here
+          </Text>
         </View>
       </View>
     </ScrollView>
   );
-
-
 
   return (
     <View className="flex-1 bg-white">
@@ -271,7 +356,6 @@ export default function ResortDetailScreen({
         className="w-full h-72"
         resizeMode="cover"
       />
-
 
       {/* Resort info */}
       <View className="px-4 pt-4">
@@ -292,38 +376,50 @@ export default function ResortDetailScreen({
       {/* Navigation tabs */}
       <View className="flex-row px-4 border-b border-gray-200">
         <TouchableOpacity
-
-          className={`py-3 mr-4 ${activeTab === "about" ? "border-b-2 border-blue-600" : ""}`}
+          className={`py-3 mr-4 ${
+            activeTab === "about" ? "border-b-2 border-blue-600" : ""
+          }`}
           onPress={() => setActiveTab("about")}
         >
           <Text
-            className={`${activeTab === "about" ? "text-blue-600 font-semibold" : "text-gray-600"}`}
-
+            className={`${
+              activeTab === "about"
+                ? "text-blue-600 font-semibold"
+                : "text-gray-600"
+            }`}
           >
             About
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-
-          className={`py-3 mr-4 ${activeTab === "services" ? "border-b-2 border-blue-600" : ""}`}
+          className={`py-3 mr-4 ${
+            activeTab === "services" ? "border-b-2 border-blue-600" : ""
+          }`}
           onPress={() => setActiveTab("services")}
         >
           <Text
-            className={`${activeTab === "services" ? "text-blue-600 font-semibold" : "text-gray-600"}`}
-
+            className={`${
+              activeTab === "services"
+                ? "text-blue-600 font-semibold"
+                : "text-gray-600"
+            }`}
           >
             Services
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-
-          className={`py-3 ${activeTab === "events" ? "border-b-2 border-blue-600" : ""}`}
+          className={`py-3 ${
+            activeTab === "events" ? "border-b-2 border-blue-600" : ""
+          }`}
           onPress={() => setActiveTab("events")}
         >
           <Text
-            className={`${activeTab === "events" ? "text-blue-600 font-semibold" : "text-gray-600"}`}
-
+            className={`${
+              activeTab === "events"
+                ? "text-blue-600 font-semibold"
+                : "text-gray-600"
+            }`}
           >
             Events
           </Text>
@@ -351,10 +447,10 @@ export default function ResortDetailScreen({
 
       {/* Book button */}
       <View className="p-4 bg-white shadow-lg border-t border-gray-200">
-
-        <TouchableOpacity className="bg-blue-600 py-4 rounded-lg items-center"  
-          onPress={handlePayment}>
-          
+        <TouchableOpacity
+          className="bg-blue-600 py-4 rounded-lg items-center"
+          onPress={handlePayment}
+        >
           <Text className="text-white text-lg font-semibold">Book Now</Text>
         </TouchableOpacity>
       </View>

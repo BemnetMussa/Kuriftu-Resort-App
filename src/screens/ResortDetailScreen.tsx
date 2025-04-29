@@ -67,9 +67,8 @@ export default function ResortDetailScreen({
 
   const screenWidth = Dimensions.get("window").width;
 
-  const GEBETA_API_KEY =
-    (process.env.EXPO_GEBETA_API_KEY as string) ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55bmFtZSI6IkFsZW1heWVodSIsImRlc2NyaXB0aW9uIjoiNmI0NTUyYjQtMDY0NC00YzM1LTlkZDAtOWU2YzRhYTJlZjc2IiwiaWQiOiJlZDRmNmVjYS03N2NlLTQ4ZDMtOTAyNS00NWU0NDZjNTQ0YjAiLCJ1c2VybmFtZSI6IkFsZW1heWVodWRhYmkifQ.ppiDrAL1egauwKTBbgmrprBUVsewRVRnVN_YBAe6mUM";
+  // const GEBETA_API_KEY =
+  //   (process.env.EXPO_GEBETA_API_KEY as string)
 
   useEffect(() => {
     fetchResortDetails();
@@ -133,25 +132,29 @@ export default function ResortDetailScreen({
   }, []);
 
   // fetch the map form gebeta
-  const fetchGebetaRoute = async ({
-    origin,
-    destination,
-    apiKey,
-  }: {
-    origin: Coordinate;
-    destination: Coordinate;
-    apiKey: string;
-  }) => {
-    try {
-      const response = await fetch(
-        `https://mapapi.gebeta.app/api/route/direction/?origin={${origin.latitude},${origin.longitude}}&destination={${destination.latitude},${destination.longitude}}&apiKey=${apiKey}`
-      );
-      const data = await response.json();
-      console.log("Gebeta API Response:", data);
-    } catch (error) {
-      console.error("Error fetching route from Gebeta:", error);
-    }
-  };
+  // const fetchGebetaRoute = async ({
+  //   origin,
+  //   destination,
+  //   apiKey,
+  // }: {
+  //   origin: Coordinate;
+  //   destination: Coordinate;
+  //   apiKey: string;
+  // }) => {
+  //   try {
+  //     const response = await fetch(
+  //       `https://mapapi.gebeta.app/api/route/direction/?origin={${origin.latitude},${origin.longitude}}&destination={${destination.latitude},${destination.longitude}}&apiKey=${apiKey}`
+  //     );
+  //     const data = await response.json();
+  //     console.log("Gebeta API Response:", data);
+  //   } catch (error) {
+  //     console.error("Error fetching route from Gebeta:", error);
+  //   }
+  // };
+
+  // fetch map form open streat map
+
+  const fetchMap = async () => {};
 
   // handle payment
   const handlePayment = async () => {

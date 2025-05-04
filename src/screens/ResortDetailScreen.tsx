@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { RouteProp } from "@react-navigation/native";
 import { RootStackParamList } from "../../types/RootStackParamList";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
+import { WebView } from "react-native-webview";
 
 type Resort = {
   id: string;
@@ -60,6 +61,10 @@ export default function ResortDetailScreen({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [location, setLocation] = useState<Coordinate | null>(null);
+  const [routeCoords, setRouteCoords] = useState([]);
+  const [distance, setDistance] = useState("");
+  const [duration, setDuration] = useState("");
+  const mapRef = useRef<WebView | null>(null);
 
   const [activeTab, setActiveTab] = useState<
     "about" | "map" | "services" | "events"
@@ -67,8 +72,11 @@ export default function ResortDetailScreen({
 
   const screenWidth = Dimensions.get("window").width;
 
-  // const GEBETA_API_KEY =
-  //   (process.env.EXPO_GEBETA_API_KEY as string)
+  // some random resort location, but we set the location(lat, and lon) manualy in the supabase for every resorts
+  const destination: Coordinate = {
+    latitude: 9.03045,
+    longitude: 38.7653,
+  };
 
   useEffect(() => {
     fetchResortDetails();
@@ -96,41 +104,6 @@ export default function ResortDetailScreen({
     }
   }
 
-  // turn location on
-  // useEffect(() => {
-  //   const getLocationAndFetchRoute = async () => {
-  //     // 1. Request location permissions
-  //     const { status } = await Location.requestForegroundPermissionsAsync();
-
-  //     if (status !== "granted") {
-  //       Alert.alert(
-  //         "Location Permission",
-  //         "Location access is needed for routing. Please enable it in settings."
-  //       );
-  //       return;
-  //     }
-
-  //     // 2. Get user's current location
-  //     const userLocation = await Location.getCurrentPositionAsync({});
-  //     const origin: Coordinate = {
-  //       latitude: userLocation.coords.latitude,
-  //       longitude: userLocation.coords.longitude,
-  //     };
-  //     setLocation(origin);
-
-  //     // 3. Set the destination manually (provided by the app)
-  //     const destination: Coordinate = {
-  //       latitude: 9.03045,
-  //       longitude: 38.7653,
-  //     };
-
-  //     // 4. Fetch route from Gebeta API
-  //     fetchGebetaRoute({ origin, destination, apiKey: GEBETA_API_KEY });
-  //   };
-
-  //   getLocationAndFetchRoute();
-  // }, []);
-
   // fetch the map form gebeta
   // const fetchGebetaRoute = async ({
   //   origin,
@@ -152,9 +125,85 @@ export default function ResortDetailScreen({
   //   }
   // };
 
-  // fetch map form open streat map
+  useEffect(() => {
+    const mapApi = process.env.EXPO_PUBLIC_MAP as string;
 
-  const fetchMap = async () => {};
+    const fetchRoute = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission Denied", "Please allow location access.");
+        return;
+      }
+
+      const userLocation = await Location.getCurrentPositionAsync({});
+      const origin = {
+        latitude: userLocation.coords.latitude,
+        longitude: userLocation.coords.longitude,
+      };
+      setLocation(origin);
+
+      // Send user location to WebView
+      mapRef.current?.postMessage(
+        JSON.stringify({
+          type: "setUserLocation",
+          lat: origin.latitude,
+          lng: origin.longitude,
+        })
+      );
+
+      try {
+        const url =
+          "https://api.openrouteservice.org/v2/directions/driving-car/geojson";
+
+        const body = {
+          coordinates: [
+            [origin.longitude, origin.latitude],
+            [destination.longitude, destination.latitude],
+          ],
+        };
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: mapApi,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const coordinates = data.features[0].geometry.coordinates.map(
+          ([lon, lat]: [number, number]) => ({
+            latitude: lat,
+            longitude: lon,
+          })
+        );
+        setRouteCoords(coordinates);
+
+        // Send route to WebView
+        mapRef.current?.postMessage(
+          JSON.stringify({
+            type: "addRoute",
+            coordinates,
+          })
+        );
+
+        const summary = data.features[0].properties.summary;
+        setDistance((summary.distance / 1000).toFixed(2) + " km");
+        setDuration((summary.duration / 60).toFixed(1) + " min");
+      } catch (error) {
+        console.error("ORS error:", error);
+        Alert.alert("Routing Error", "Could not fetch route from ORS.");
+      }
+    };
+
+    fetchRoute();
+  }, []);
 
   // handle payment
   const handlePayment = async () => {
@@ -339,11 +388,81 @@ export default function ResortDetailScreen({
           </Text>
         </View>
         {/* map */}
-        <View className="bg-gray-200 h-40 rounded-lg mt-2 items-center justify-center">
+        {/* <View className="bg-gray-200 h-40 rounded-lg mt-2 items-center justify-center">
           <Ionicons name="map" size={48} color="#aaa" />
           <Text className="text-sm text-gray-500 mt-2">
             Map will be displayed here
           </Text>
+        </View> */}
+
+        {/* <View className={`flex-1`}>
+          <MapView
+            ref={mapRef}
+            className={`w-full h-full`}
+            showsUserLocation
+            initialRegion={{
+              latitude: destination.latitude,
+              longitude: destination.longitude,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+          >
+            {location && <Marker coordinate={location} title="Your Location" />}
+            <Marker coordinate={destination} title="Kuriftu Resort" />
+            {routeCoords.length > 0 && (
+              <Polyline
+                coordinates={routeCoords}
+                strokeColor="#1E90FF"
+                strokeWidth={4}
+              />
+            )}
+          </MapView>
+
+          {distance && duration && (
+            <View
+              className={`absolute bottom-10 left-5 right-5 bg-white p-4 rounded-xl shadow-lg`}
+            >
+              <Text className={`text-lg font-semibold`}>
+                Distance: {distance}
+              </Text>
+              <Text className={`text-lg font-semibold`}>
+                Estimated Time: {duration}
+              </Text>
+            </View>
+          )}
+        </View> */}
+
+        <View className="h-[300px] mt-2 rounded-lg overflow-hidden relative bg-gray-100">
+          <WebView
+            ref={mapRef}
+            source={require("../assets/map.html")}
+            className="flex-1 h-full w-full border-2"
+            originWhitelist={["*"]}
+            onMessage={(event) => {
+              try {
+                const data = JSON.parse(event.nativeEvent.data);
+                if (data.type === "mapReady") {
+                  console.log("Map is ready");
+                } else if (data.type === "error") {
+                  console.error("Map HTML error:", data);
+                }
+              } catch (error) {
+                console.error("Error processing WebView message:", error);
+              }
+            }}
+            scalesPageToFit={true}
+            scrollEnabled={true}
+          />
+          {distance && duration && (
+            <View className="absolute bottom-3 left-3 right-3 bg-white/90 p-3 rounded-lg shadow-lg">
+              <Text className="text-base font-semibold text-gray-800">
+                Distance: {distance}
+              </Text>
+              <Text className="text-base font-semibold text-gray-800">
+                Estimated Time: {duration}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
     </ScrollView>

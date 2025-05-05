@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <style>
+      #map {
+        height: 300px;
+        width: 400px;
+      }
+      body {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      // Error handling
+      window.onerror = function (msg, url, lineNo, columnNo, error) {
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            type: "error",
+            message: msg,
+            url,
+            lineNo,
+            columnNo,
+            error: error?.message,
+          })
+        );
+        return false;
+      };
+
+      try {
+        // Initialize map
+        var map = L.map("map", { zoomControl: true }).setView(
+          [9.03045, 38.7653],
+          13
+        );
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution:
+            '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 19,
+        }).addTo(map);
+
+        // Markers and route
+        var userMarker = null;
+        var destinationMarker = L.marker([9.03045, 38.7653])
+          .addTo(map)
+          .bindPopup("Kuriftu Resort")
+          .openPopup();
+        var routeLayer = null;
+
+        // Handle messages from React Native
+        window.addEventListener("message", function (event) {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === "setUserLocation") {
+              if (userMarker) {
+                userMarker.setLatLng([data.lat, data.lng]);
+              } else {
+                userMarker = L.marker([data.lat, data.lng])
+                  .addTo(map)
+                  .bindPopup("Your Location");
+              }
+              map.fitBounds(
+                [
+                  [data.lat, data.lng],
+                  [9.03045, 38.7653],
+                ],
+                { padding: [80, 80] }
+              );
+            }
+            if (data.type === "addRoute") {
+              if (routeLayer) {
+                map.removeLayer(routeLayer);
+              }
+              const coords = data.coordinates.map((coord) => [
+                coord.latitude,
+                coord.longitude,
+              ]);
+              routeLayer = L.polyline(coords, {
+                color: "#1E90FF",
+                weight: 4,
+              }).addTo(map);
+              map.fitBounds(coords, { padding: [80, 80] });
+            }
+          } catch (error) {
+            window.ReactNativeWebView.postMessage(
+              JSON.stringify({
+                type: "error",
+                message: "Message processing error",
+                error: error.message,
+              })
+            );
+          }
+        });
+
+        // Send map ready event
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({ type: "mapReady" })
+        );
+      } catch (error) {
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            type: "error",
+            message: "Map initialization error",
+            error: error.message,
+          })
+        );
+      }
+    </script>
+  </body>
+</html>

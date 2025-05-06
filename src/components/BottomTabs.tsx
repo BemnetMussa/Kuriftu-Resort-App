@@ -17,10 +17,10 @@ export default function BottomTabs() {
         tabBarIcon: ({ color, size }) => {
           let iconName: any;
 
-          if (route.name === "Home") iconName = "home";
-          else if (route.name === "Explore") iconName = "search";
+          if (route.name === "Home") iconName = "home-outline";
+          else if (route.name === "ResortList") iconName = "search-outline";
           else if (route.name === "Bookings") iconName = "calendar";
-          else if (route.name === "Profile") iconName = "person";
+          else if (route.name === "Profile") iconName = "person-outline";
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },

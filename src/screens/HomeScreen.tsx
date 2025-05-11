@@ -251,18 +251,6 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         )}
       </ScrollView>
-
-      {/* Fixed Bottom Button */}
-      <View className="absolute bottom-0 left-0 right-0 bg-white p-4 border-t border-gray-200">
-        <TouchableOpacity
-          className="bg-blue-600 py-4 rounded-lg items-center shadow-md"
-          onPress={() => navigation.navigate("ResortList")}
-        >
-          <Text className="text-white text-lg font-semibold">
-            View All Resorts
-          </Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }

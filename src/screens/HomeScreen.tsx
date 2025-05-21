@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -191,7 +191,6 @@ export default function HomeScreen({ navigation }: Props) {
         </View>
         {renderStars(item.rating)}
         {renderAmenities(item.amenities)}
-   
       </View>
     </TouchableOpacity>
   );
@@ -209,61 +208,49 @@ export default function HomeScreen({ navigation }: Props) {
     </View>
   );
 
-return (
-  <View className="flex-1 bg-gray-100">
-    <ScrollView
-      className="flex-1"
-      contentContainerStyle={{ paddingBottom: 100 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Scrollable banner */}
-      <View className="bg-white pt-6 pb-4 px-4 shadow-sm">
-        <Text className="text-gray-600 text-center">
-          Experience Ethiopian Culture in Luxury
-        </Text>
-      </View>
-
-      {/* Loading/Error/Main Content */}
-      {loading ? (
-        <View className="justify-center items-center mt-20">
-          <ActivityIndicator size="large" color="#0066cc" />
-          <Text className="mt-2 text-gray-600">Loading resorts...</Text>
-        </View>
-      ) : error ? (
-        <View className="justify-center items-center p-4 mt-10">
-          <Ionicons name="alert-circle-outline" size={48} color="#f87171" />
-          <Text className="text-red-500 text-center mt-2">{error}</Text>
-          <TouchableOpacity
-            className="mt-4 bg-blue-500 py-2 px-4 rounded-lg"
-            onPress={fetchFeaturedResorts}
-          >
-            <Text className="text-white">Retry</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View className="p-4">
-          <FlatList
-            data={featuredResorts}
-            renderItem={renderResortCard}
-            keyExtractor={(item) => item.id.toString()}
-            ListEmptyComponent={<EmptyState />}
-            scrollEnabled={false} // flatlist doesn't scroll, scrollview handles that
-          />
-        </View>
-      )}
-    </ScrollView>
-
-    {/* Fixed Bottom Button */}
-    <View className="absolute bottom-0 left-0 right-0 bg-white p-4 border-t border-gray-200">
-      <TouchableOpacity
-        className="bg-blue-600 py-4 rounded-lg items-center shadow-md"
-        onPress={() => navigation.navigate("ResortList")}
+  return (
+    <View className="flex-1 bg-gray-100">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
       >
-        <Text className="text-white text-lg font-semibold">
-          View All Resorts
-        </Text>
-      </TouchableOpacity>
+        {/* Scrollable banner */}
+        <View className="bg-white pt-6 pb-4 px-4 shadow-sm">
+          <Text className="text-gray-600 text-center">
+            Experience Ethiopian Culture in Luxury
+          </Text>
+        </View>
+
+        {/* Loading/Error/Main Content */}
+        {loading ? (
+          <View className="justify-center items-center mt-20">
+            <ActivityIndicator size="large" color="#0066cc" />
+            <Text className="mt-2 text-gray-600">Loading resorts...</Text>
+          </View>
+        ) : error ? (
+          <View className="justify-center items-center p-4 mt-10">
+            <Ionicons name="alert-circle-outline" size={48} color="#f87171" />
+            <Text className="text-red-500 text-center mt-2">{error}</Text>
+            <TouchableOpacity
+              className="mt-4 bg-blue-500 py-2 px-4 rounded-lg"
+              onPress={fetchFeaturedResorts}
+            >
+              <Text className="text-white">Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View className="p-4">
+            <FlatList
+              data={featuredResorts}
+              renderItem={renderResortCard}
+              keyExtractor={(item) => item.id.toString()}
+              ListEmptyComponent={<EmptyState />}
+              scrollEnabled={false} // flatlist doesn't scroll, scrollview handles that
+            />
+          </View>
+        )}
+      </ScrollView>
     </View>
-  </View>
-);
+  );
 }

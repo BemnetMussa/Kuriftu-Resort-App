@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -15,7 +14,8 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { RootStackParamList } from "../../types/RootStackParamList";
 import { Ionicons } from "@expo/vector-icons";
-
+import ServiceContent from "./ServicesScreen"; // We'll create this component
+import EventContent from "./EventScreen"; // We'll create this component
 
 type Resort = {
   id: string;
@@ -30,9 +30,7 @@ type Resort = {
   about: string;
 };
 
-
 type ResortDetailScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ResortDetail'>;
-
 
 type ResortDetailScreenRouteProp = RouteProp<
   RootStackParamList,
@@ -57,7 +55,6 @@ export default function ResortDetailScreen({
   
   const screenWidth = Dimensions.get('window').width;
 
-
   useEffect(() => {
     fetchResortDetails();
   }, [resortId]);
@@ -65,7 +62,6 @@ export default function ResortDetailScreen({
   async function fetchResortDetails() {
     try {
       setLoading(true);
-
     
       // Fetch resort details
       const { data: resortData, error: resortError } = await supabase
@@ -132,12 +128,10 @@ export default function ResortDetailScreen({
   const renderAmenities = () => {
     if (!resort?.amenities) return null;
     
-
     // Get only amenities that are true
     const availableAmenities = Object.entries(resort.amenities)
       .filter(([_, value]) => value === true)
       .map(([key]) => key);
-
     
     if (availableAmenities.length === 0) return null;
     
@@ -165,7 +159,6 @@ export default function ResortDetailScreen({
             />
             <Text className="text-sm text-gray-700">
               {amenityIcons[amenity]?.name || amenity.charAt(0).toUpperCase() + amenity.slice(1)}
-
             </Text>
           </View>
         ))}
@@ -186,7 +179,6 @@ export default function ResortDetailScreen({
         );
       } else if (i === fullStars && hasHalfStar) {
         stars.push(
-
           <Ionicons key={`star-half-${i}`} name="star-half" size={16} color="#FFD700" />
         );
       } else {
@@ -200,7 +192,6 @@ export default function ResortDetailScreen({
       <View className="flex-row items-center">
         {stars}
         <Text className="text-sm text-gray-600 ml-1">({rating.toFixed(1)})</Text>
-
       </View>
     );
   };
@@ -219,9 +210,7 @@ export default function ResortDetailScreen({
       <View className="flex-1 justify-center items-center p-5">
         <Ionicons name="alert-circle-outline" size={48} color="#f87171" />
         <Text className="text-red-500 text-lg text-center mt-2">{error}</Text>
-
         <TouchableOpacity
-
           className="mt-4 bg-blue-500 py-2 px-4 rounded-lg"
           onPress={fetchResortDetails}
         >
@@ -232,7 +221,6 @@ export default function ResortDetailScreen({
   }
 
   const renderAboutTab = () => (
-
     <ScrollView className="flex-1 px-4">
       <View className="mb-6 mt-4">
         <Text className="text-lg font-semibold text-gray-800 mb-2">About</Text>
@@ -253,13 +241,10 @@ export default function ResortDetailScreen({
         <View className="bg-gray-200 h-40 rounded-lg mt-2 items-center justify-center">
           <Ionicons name="map" size={48} color="#aaa" />
           <Text className="text-sm text-gray-500 mt-2">Map will be displayed here</Text>
-
         </View>
       </View>
     </ScrollView>
   );
-
-
 
   return (
     <View className="flex-1 bg-white">
@@ -271,7 +256,6 @@ export default function ResortDetailScreen({
         className="w-full h-72"
         resizeMode="cover"
       />
-
 
       {/* Resort info */}
       <View className="px-4 pt-4">
@@ -292,38 +276,32 @@ export default function ResortDetailScreen({
       {/* Navigation tabs */}
       <View className="flex-row px-4 border-b border-gray-200">
         <TouchableOpacity
-
           className={`py-3 mr-4 ${activeTab === "about" ? "border-b-2 border-blue-600" : ""}`}
           onPress={() => setActiveTab("about")}
         >
           <Text
             className={`${activeTab === "about" ? "text-blue-600 font-semibold" : "text-gray-600"}`}
-
           >
             About
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-
           className={`py-3 mr-4 ${activeTab === "services" ? "border-b-2 border-blue-600" : ""}`}
           onPress={() => setActiveTab("services")}
         >
           <Text
             className={`${activeTab === "services" ? "text-blue-600 font-semibold" : "text-gray-600"}`}
-
           >
             Services
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-
           className={`py-3 ${activeTab === "events" ? "border-b-2 border-blue-600" : ""}`}
           onPress={() => setActiveTab("events")}
         >
           <Text
             className={`${activeTab === "events" ? "text-blue-600 font-semibold" : "text-gray-600"}`}
-
           >
             Events
           </Text>
@@ -333,28 +311,14 @@ export default function ResortDetailScreen({
       {/* Tab content */}
       <View className="flex-1">
         {activeTab === "about" && renderAboutTab()}
-        {activeTab === "services" && (
-          <View className="flex-1 items-center justify-center">
-            <Text className="text-gray-500">
-              Services content will be displayed here
-            </Text>
-          </View>
-        )}
-        {activeTab === "events" && (
-          <View className="flex-1 items-center justify-center">
-            <Text className="text-gray-500">
-              Events content will be displayed here
-            </Text>
-          </View>
-        )}
+        {activeTab === "services" && <ServiceContent resortId={resortId} />}
+        {activeTab === "events" && <EventContent resortId={resortId} />}
       </View>
 
       {/* Book button */}
       <View className="p-4 bg-white shadow-lg border-t border-gray-200">
-
         <TouchableOpacity className="bg-blue-600 py-4 rounded-lg items-center"  
           onPress={handlePayment}>
-          
           <Text className="text-white text-lg font-semibold">Book Now</Text>
         </TouchableOpacity>
       </View>

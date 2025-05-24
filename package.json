@@ -12,7 +12,6 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-navigation/bottom-tabs": "^7.3.12",
->>>>>>> 3fb7823ef401eb8c5959b5996ad254b305781ad6
     "@react-navigation/native": "^7.1.6",
     "@react-navigation/native-stack": "^7.3.10",
     "@rneui/themed": "^4.0.0-rc.8",

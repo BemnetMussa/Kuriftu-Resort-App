@@ -350,7 +350,6 @@ export default function ResortDetailScreen({
       <View className="flex-1 justify-center items-center p-5">
         <Ionicons name="alert-circle-outline" size={48} color="#f87171" />
         <Text className="text-red-500 text-lg text-center mt-2">{error}</Text>
-
         <TouchableOpacity
           className="mt-4 bg-blue-500 py-2 px-4 rounded-lg"
           onPress={fetchResortDetails}
@@ -551,20 +550,8 @@ export default function ResortDetailScreen({
       {/* Tab content */}
       <View className="flex-1">
         {activeTab === "about" && renderAboutTab()}
-        {activeTab === "services" && (
-          <View className="flex-1 items-center justify-center">
-            <Text className="text-gray-500">
-              Services content will be displayed here
-            </Text>
-          </View>
-        )}
-        {activeTab === "events" && (
-          <View className="flex-1 items-center justify-center">
-            <Text className="text-gray-500">
-              Events content will be displayed here
-            </Text>
-          </View>
-        )}
+        {activeTab === "services" && <ServiceContent resortId={resortId} />}
+        {activeTab === "events" && <EventContent resortId={resortId} />}
       </View>
 
       {/* Book button */}

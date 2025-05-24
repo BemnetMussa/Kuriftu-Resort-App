@@ -13,7 +13,6 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/RootStackParamList";
 import { Ionicons } from "@expo/vector-icons";
 
-// Updated interface with correct amenities type
 interface Resort {
   id: number;
   name: string;
@@ -24,6 +23,7 @@ interface Resort {
     [key: string]: boolean;
   };
   about: string;
+  public_image_url?: string;
 }
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
@@ -47,7 +47,6 @@ export default function HomeScreen({ navigation }: Props) {
   async function fetchFeaturedResorts() {
     try {
       setLoading(true);
-
       const { data, error } = await supabase
         .from("Resorts Table")
         .select("id, name, location, image_url, rating, amenities, about")
@@ -56,7 +55,20 @@ export default function HomeScreen({ navigation }: Props) {
 
       if (error) throw error;
 
-      setFeaturedResorts(data as Resort[]);
+      // Map each resort to include public_image_url from Supabase Storage
+      const resortsWithUrls = data.map((resort: Resort) => {
+        const trimmedPath = resort.image_url.trim();
+
+        const { data: publicUrlData } = supabase.storage
+          .from("image-bucket")
+          .getPublicUrl(trimmedPath);
+
+        return {
+          ...resort,
+          public_image_url: publicUrlData?.publicUrl || "",
+        };
+      });
+      setFeaturedResorts(resortsWithUrls as Resort[]);
       setError(null);
     } catch (error: any) {
       console.error("Error fetching resorts:", error);
@@ -66,7 +78,6 @@ export default function HomeScreen({ navigation }: Props) {
     }
   }
 
-  // Render a star rating component
   const renderStars = (rating: number) => {
     const stars = [];
     const fullStars = Math.floor(rating);
@@ -108,21 +119,16 @@ export default function HomeScreen({ navigation }: Props) {
     );
   };
 
-  // Updated to handle amenities as an object with boolean values
   const renderAmenities = (amenities: { [key: string]: boolean } | null) => {
     if (!amenities) return null;
 
-    // Get only amenities that are true
     const availableAmenities = Object.entries(amenities)
-      .filter(([_, value]) => value === true)
+      .filter(([_, value]) => value)
       .map(([key]) => key);
-
-    if (availableAmenities.length === 0) return null;
 
     const displayCount = Math.min(availableAmenities.length, 3);
     const displayAmenities = availableAmenities.slice(0, displayCount);
 
-    // Map amenity keys to more user-friendly names and icons
     const amenityIcons: { [key: string]: { name: string; icon: string } } = {
       wifi: { name: "Wi-Fi", icon: "wifi" },
       pool: { name: "Pool", icon: "water" },
@@ -166,34 +172,37 @@ export default function HomeScreen({ navigation }: Props) {
     );
   };
 
-  const renderResortCard = ({ item }: { item: Resort }) => (
-    <TouchableOpacity
-      className="bg-white rounded-lg mb-4 shadow-md overflow-hidden"
-      onPress={() =>
-        navigation.navigate("ResortDetail", {
-          resortId: item.id,
-          resortName: item.name,
-        })
-      }
-    >
-      <Image
-        source={{
-          uri: item.image_url || "https://via.placeholder.com/300x200",
-        }}
-        className="w-full h-48"
-        resizeMode="cover"
-      />
-      <View className="p-4">
-        <Text className="text-lg font-bold">{item.name}</Text>
-        <View className="flex-row items-center mt-1">
-          <Ionicons name="location" size={14} color="#666" />
-          <Text className="text-sm text-gray-500 ml-1">{item.location}</Text>
+  const renderResortCard = ({ item }: { item: Resort }) => {
+    return (
+      <TouchableOpacity
+        className="bg-white rounded-lg mb-4 shadow-md overflow-hidden"
+        onPress={() =>
+          navigation.navigate("ResortDetail", {
+            resortId: item.id,
+            resortName: item.name,
+          })
+        }
+      >
+        <Image
+          source={{
+            uri: item.public_image_url,
+          }}
+          className="w-full h-48"
+          resizeMode="cover"
+        />
+
+        <View className="p-4">
+          <Text className="text-lg font-bold">{item.name}</Text>
+          <View className="flex-row items-center mt-1">
+            <Ionicons name="location" size={14} color="#666" />
+            <Text className="text-sm text-gray-500 ml-1">{item.location}</Text>
+          </View>
+          {renderStars(item.rating)}
+          {renderAmenities(item.amenities)}
         </View>
-        {renderStars(item.rating)}
-        {renderAmenities(item.amenities)}
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const EmptyState = () => (
     <View className="flex-1 justify-center items-center py-8">
@@ -215,14 +224,12 @@ export default function HomeScreen({ navigation }: Props) {
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Scrollable banner */}
         <View className="bg-white pt-6 pb-4 px-4 shadow-sm">
           <Text className="text-gray-600 text-center">
             Experience Ethiopian Culture in Luxury
           </Text>
         </View>
 
-        {/* Loading/Error/Main Content */}
         {loading ? (
           <View className="justify-center items-center mt-20">
             <ActivityIndicator size="large" color="#0066cc" />
@@ -246,13 +253,12 @@ export default function HomeScreen({ navigation }: Props) {
               renderItem={renderResortCard}
               keyExtractor={(item) => item.id.toString()}
               ListEmptyComponent={<EmptyState />}
-              scrollEnabled={false} // flatlist doesn't scroll, scrollview handles that
+              scrollEnabled={false}
             />
           </View>
         )}
       </ScrollView>
 
-      {/* Fixed Bottom Button */}
       <View className="absolute bottom-0 left-0 right-0 bg-white p-4 border-t border-gray-200">
         <TouchableOpacity
           className="bg-blue-600 py-4 rounded-lg items-center shadow-md"
